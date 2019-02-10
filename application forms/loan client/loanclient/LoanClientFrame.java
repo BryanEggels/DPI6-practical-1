@@ -16,7 +16,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
+import JMSConnection.JmsReceiver;
+import JMSConnection.JmsSender;
+import loanbroker.JListLine;
 import messaging.requestreply.RequestReply;
+import model.bank.BankInterestRequest;
 import model.loan.*;
 
 public class LoanClientFrame extends JFrame {
@@ -34,6 +38,7 @@ public class LoanClientFrame extends JFrame {
 	private JLabel lblNewLabel;
 	private JLabel lblNewLabel_1;
 	private JTextField tfTime;
+	private static LoanClientFrame frame;
 
 	/**
 	 * Create the frame.
@@ -103,7 +108,7 @@ public class LoanClientFrame extends JFrame {
 		gbc_tfTime.gridy = 2;
 		contentPane.add(tfTime, gbc_tfTime);
 		tfTime.setColumns(10);
-		
+
 		JButton btnQueue = new JButton("send loan request");
 		btnQueue.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -112,10 +117,15 @@ public class LoanClientFrame extends JFrame {
 				int time = Integer.parseInt(tfTime.getText());				
 				
 				LoanRequest request = new LoanRequest(ssn,amount,time);
-				listModel.addElement( new RequestReply<LoanRequest,LoanReply>(request, null));	
+				//LOANREQUEST HEEFT HIER GEEN CORRELATION ID, FIXEN
+
 				// to do:  send the JMS with request to Loan Broker
-				loanSender sender = new loanSender();
-				sender.sendLoan(request);
+
+				JmsSender sender = new JmsSender("loan");
+				sender.connect();
+				sender.sendLoanRequest(request, frame);
+				//loanSender sender = new loanSender();
+				//sender.sendLoanRequest(request);
 			}
 		});
 		GridBagConstraints gbc_btnQueue = new GridBagConstraints();
@@ -141,30 +151,42 @@ public class LoanClientFrame extends JFrame {
 	/**
 	 * This method returns the RequestReply line that belongs to the request from requestReplyList (JList). 
 	 * You can call this method when an reply arrives in order to add this reply to the right request in requestReplyList.
-	 * @param request
+	 * @param reply
 	 * @return
 	 */
-   private RequestReply<LoanRequest,LoanReply> getRequestReply(LoanRequest request){    
+   private RequestReply<LoanRequest,LoanReply> getRequestReply(LoanReply reply){
      
      for (int i = 0; i < listModel.getSize(); i++){
     	 RequestReply<LoanRequest,LoanReply> rr =listModel.get(i);
-    	 if (rr.getRequest() == request){
+    	 if (rr.getRequest().getCorrelationID().equals(reply.getCorrelationID())){
     		 return rr;
     	 }
      }
      
      return null;
    }
-	
+
+   public void add(LoanReply reply){
+   	 	RequestReply rr = getRequestReply(reply);
+	   if (rr!= null && reply != null){
+		   rr.setReply(reply);
+		   requestReplyList.repaint();
+	   }
+
+   }
+   public void add(LoanRequest request){
+	   listModel.addElement( new RequestReply<LoanRequest,LoanReply>(request, null));
+	   requestReplyList.repaint();
+   }
+
 	public static void main(String[] args) {
-
-   		loanSender sender = new loanSender();
-
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					LoanClientFrame frame = new LoanClientFrame();
-					
+					frame = new LoanClientFrame();
+					JmsReceiver receiver = new JmsReceiver("loanReply");
+					receiver.startConnection();
+					receiver.registerListener(new LoanReplyListener(frame));
 					frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();

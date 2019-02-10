@@ -6,6 +6,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -17,10 +18,11 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 
-import loanbroker.JListLine;
+import JMSConnection.JmsReceiver;
+import JMSConnection.JmsSender;
+
 import model.bank.*;
 import messaging.requestreply.RequestReply;
-import model.loan.LoanRequest;
 
 public class JMSBankFrame extends JFrame {
 
@@ -31,7 +33,7 @@ public class JMSBankFrame extends JFrame {
 	private JPanel contentPane;
 	private JTextField tfReply;
 	private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>>();
-	
+
 	/**
 	 * Launch the application.
 	 */
@@ -41,20 +43,19 @@ public class JMSBankFrame extends JFrame {
 				try {
 					JMSBankFrame frame = new JMSBankFrame();
 					frame.setVisible(true);
-					bankInterestReceiver receiver = new bankInterestReceiver(frame);
-					receiver.receiveLoan();
+					JmsReceiver receiver = new JmsReceiver("bankInterest");
+					receiver.startConnection();
+					receiver.registerListener(new bankInterestListener(frame));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
 			}
 		});
 	}
-
 	public void add(BankInterestRequest request){
 		RequestReply<BankInterestRequest, BankInterestReply> rr = new RequestReply<>(request,null);
 		listModel.add(listModel.getSize(),rr);
 	}
-
 	/**
 	 * Create the frame.
 	 */
@@ -107,11 +108,15 @@ public class JMSBankFrame extends JFrame {
 			public void actionPerformed(ActionEvent e) {
 				RequestReply<BankInterestRequest, BankInterestReply> rr = list.getSelectedValue();
 				double interest = Double.parseDouble((tfReply.getText()));
-				BankInterestReply reply = new BankInterestReply(interest,"ABN AMRO");
+				BankInterestReply reply = new BankInterestReply(interest,"ABN AMRO",rr.getRequest().getCorrelationID());
 				if (rr!= null && reply != null){
 					rr.setReply(reply);
 	                list.repaint();
 					// todo: sent JMS message with the reply to Loan Broker
+					JmsSender sender = new JmsSender("BankInterestReply");
+					sender.connect();
+					rr.setReply(new BankInterestReply(interest,"ABN AMRO",rr.getRequest().getCorrelationID()));
+					sender.sendBankInterestReply(rr);
 				}
 			}
 		});

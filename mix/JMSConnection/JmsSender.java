@@ -1,6 +1,10 @@
 package JMSConnection;
 
+import loanclient.LoanClientFrame;
+import messaging.requestreply.RequestReply;
+import model.bank.BankInterestReply;
 import model.bank.BankInterestRequest;
+import model.loan.LoanReply;
 import model.loan.LoanRequest;
 
 import javax.jms.*;
@@ -19,12 +23,17 @@ public class JmsSender {
     Destination sendDestination;
     MessageProducer producer;
     String topicName;
-    public boolean succesfull;
-
+    String correlationID;
 
     public JmsSender(String topicName) {
         this.topicName = topicName;
+    }
+    public JmsSender(String topicName, String correlationID){
+        this.topicName = topicName;
+        this.correlationID = correlationID;
+    }
 
+    public boolean connect(){
         try {
 
             Properties props = new Properties();
@@ -43,18 +52,36 @@ public class JmsSender {
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
             // connect to the sender destination
-            sendDestination = (Destination) jndiContext.lookup("loan");
+            sendDestination = (Destination) jndiContext.lookup(topicName);
             producer = session.createProducer(sendDestination);
-            this.succesfull =true;
+            return true;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 
-    public void sendLoan(LoanRequest request){
+    public void sendLoanRequest(LoanRequest request, LoanClientFrame frame){
         try {
+
             Message msg =  session.createObjectMessage(request);
+
+
             producer.send(msg);
+            request.setCorrelationID(msg.getJMSMessageID());
+
+            frame.add(request);
+            System.out.println(msg.getJMSMessageID());
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+    public void sendLoanReply(LoanReply reply){
+        try {
+            Message msg =  session.createObjectMessage(reply);
+            msg.setJMSCorrelationID(reply.getCorrelationID());
+            producer.send(msg);
+            System.out.println(msg.getJMSMessageID());
         } catch (JMSException e) {
             e.printStackTrace();
         }
@@ -62,6 +89,17 @@ public class JmsSender {
     public void sendBankInterestRequest(BankInterestRequest request){
         try {
             Message msg =  session.createObjectMessage(request);
+            msg.setJMSCorrelationID(request.getCorrelationID());
+
+            producer.send(msg);
+        } catch (JMSException e) {
+            e.printStackTrace();
+        }
+    }
+    public void sendBankInterestReply(RequestReply reply){
+        try {
+            Message msg =  session.createObjectMessage(reply);
+
             producer.send(msg);
         } catch (JMSException e) {
             e.printStackTrace();

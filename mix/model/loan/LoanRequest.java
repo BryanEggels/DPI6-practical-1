@@ -1,5 +1,7 @@
 package model.loan;
 
+import model.Correlation;
+
 import java.io.Serializable;
 
 /**
@@ -8,7 +10,7 @@ import java.io.Serializable;
  * request that a client submits to get a loan.
  *
  */
-public class LoanRequest implements Serializable {
+public class LoanRequest extends Correlation implements Serializable {
 
     private int ssn; // unique client number.
     private int amount; // the ammount to borrow
@@ -51,6 +53,8 @@ public class LoanRequest implements Serializable {
     public void setTime(int time) {
         this.time = time;
     }
+
+
 
     @Override
     public String toString() {

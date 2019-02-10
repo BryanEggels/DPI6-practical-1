@@ -1,11 +1,15 @@
 package model.loan;
 
+import model.Correlation;
+
+import java.io.Serializable;
+
 /**
  *
  * This class stores all information about a bank offer
  * as a response to a client loan request.
  */
-public class LoanReply {
+public class LoanReply extends Correlation implements Serializable{
 
         private double interest; // the interest that the bank offers
         private String bankID; // the unique quote identification
