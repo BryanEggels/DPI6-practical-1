@@ -25,7 +25,7 @@ public class bankInterestListener implements MessageListener {
         try {
             BankInterestRequest request = (BankInterestRequest) objectMessage.getObject();
             System.out.println(request.toString());
-            //new BankInterestSender().sendBankInterestRequest(new BankInterestRequest(loanRequest.getAmount(),loanRequest.getTime())); //directly sends the bankrequest
+            frame.add(request);
         } catch (JMSException e) {
             e.printStackTrace();
         }
