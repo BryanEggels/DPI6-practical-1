@@ -3,17 +3,17 @@ package bank;
 import javax.jms.Message;
 import javax.jms.MessageListener;
 
-import messaging.requestreply.RequestReply;
 import model.bank.BankInterestRequest;
 import javax.jms.JMSException;
 import javax.jms.ObjectMessage;
 
-public class bankInterestListener implements MessageListener {
-    JMSBankFrame frame;
+public class INGbankInterestListener implements MessageListener {
+    INGFrame frame;
 
-    public bankInterestListener(JMSBankFrame frame){
+    public INGbankInterestListener(INGFrame frame){
         this.frame = frame;
     }
+    public INGbankInterestListener(){};
 
 
     @Override
@@ -29,4 +29,6 @@ public class bankInterestListener implements MessageListener {
             e.printStackTrace();
         }
     }
+
+
 }

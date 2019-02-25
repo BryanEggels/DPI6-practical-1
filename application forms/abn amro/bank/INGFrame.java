@@ -18,9 +18,6 @@ import javax.swing.JTextField;
 import javax.swing.border.EmptyBorder;
 
 
-import JMSConnection.JmsReceiver;
-import JMSConnection.JmsSender;
-
 import model.bank.*;
 import messaging.requestreply.RequestReply;
 
@@ -33,6 +30,7 @@ public class JMSBankFrame extends JFrame {
 	private JPanel contentPane;
 	private JTextField tfReply;
 	private DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>> listModel = new DefaultListModel<RequestReply<BankInterestRequest, BankInterestReply>>();
+	private static LoanBrokerAppGateway gateway;
 
 	/**
 	 * Launch the application.
@@ -43,9 +41,8 @@ public class JMSBankFrame extends JFrame {
 				try {
 					JMSBankFrame frame = new JMSBankFrame();
 					frame.setVisible(true);
-					JmsReceiver receiver = new JmsReceiver("bankInterest");
-					receiver.startConnection();
-					receiver.registerListener(new bankInterestListener(frame));
+					gateway = new LoanBrokerAppGateway();
+					gateway.registerListener(frame);
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -55,6 +52,7 @@ public class JMSBankFrame extends JFrame {
 	public void add(BankInterestRequest request){
 		RequestReply<BankInterestRequest, BankInterestReply> rr = new RequestReply<>(request,null);
 		listModel.add(listModel.getSize(),rr);
+
 	}
 	/**
 	 * Create the frame.
@@ -113,10 +111,8 @@ public class JMSBankFrame extends JFrame {
 					rr.setReply(reply);
 	                list.repaint();
 					// todo: sent JMS message with the reply to Loan Broker
-					JmsSender sender = new JmsSender("BankInterestReply");
-					sender.connect();
 					rr.setReply(new BankInterestReply(interest,"ABN AMRO",rr.getRequest().getCorrelationID()));
-					sender.sendBankInterestReply(rr);
+					gateway.sendBankReply(rr);
 				}
 			}
 		});
